@@ -1,13 +1,12 @@
 ﻿using BepInEx;
-using BepInEx.Logging;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+using ILDumpUtility;
 
 namespace Erenshor_LowLevelXP
 {
@@ -25,6 +24,9 @@ namespace Erenshor_LowLevelXP
         public void Awake()
         {
             harmony.PatchAll();
+#if DEBUG
+            ILDumper.DumpFinalPatchedIL(typeof(Character).GetMethod("DoDeath", BindingFlags.NonPublic | BindingFlags.Instance));
+#endif
             Logger.LogInfo($"Plugin {ModName} is loaded!");
         }
 

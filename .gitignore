@@ -365,3 +365,4 @@ FodyWeavers.xsd
 # Prevent local packaging files from being committed
 Thunderstore/
 Scripts/
+References/

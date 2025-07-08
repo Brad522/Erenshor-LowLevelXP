@@ -1,0 +1,3 @@
+[submodule "Shared/ILDumpUtility"]
+	path = Shared/ILDumpUtility
+	url = https://github.com/Brad522/ILDumpUtility

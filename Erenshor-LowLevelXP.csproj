@@ -59,10 +59,6 @@
     <Compile Include="LowLevelXP.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-    <Compile Include="Shared\ILDumpUtility\ILByteReader.cs" />
-    <Compile Include="Shared\ILDumpUtility\ILDumper.cs" />
-  </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>

@@ -24,9 +24,6 @@ namespace Erenshor_LowLevelXP
         public void Awake()
         {
             harmony.PatchAll();
-#if DEBUG
-            ILDumper.DumpFinalPatchedIL(typeof(Character).GetMethod("DoDeath", BindingFlags.NonPublic | BindingFlags.Instance));
-#endif
             Logger.LogInfo($"Plugin {ModName} is loaded!");
         }
 

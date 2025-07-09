@@ -1,11 +1,8 @@
 ﻿using BepInEx;
 using HarmonyLib;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 
 namespace Erenshor_LowLevelXP
 {
@@ -13,7 +10,7 @@ namespace Erenshor_LowLevelXP
     public class LowLevelXP : BaseUnityPlugin
     {
         internal const string ModName = "LowLevelXP";
-        internal const string ModVersion = "1.0.0";
+        internal const string ModVersion = "1.0.1";
         internal const string ModDescription = "Low Level XP";
         internal const string Author = "Brad522";
         private const string ModGUID = Author + "." + ModName;
@@ -38,32 +35,67 @@ namespace Erenshor_LowLevelXP
         {
             public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                var codes = new List<CodeInstruction>(instructions);
+                var matcher = new CodeMatcher(instructions);
 
-                for (int i = 0; i < codes.Count - 2; i++)
+                Label correctLeaveTarget = new Label();
+                
+                while (matcher.MatchEndForward(
+                    new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(SimPlayer), "MyStats")),
+                    new CodeMatch(OpCodes.Dup),
+                    new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Stats), "CurrentExperience")),
+                    new CodeMatch(OpCodes.Ldarg_0),
+                    new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Character), "xp")),
+                    new CodeMatch(OpCodes.Add),
+                    new CodeMatch(OpCodes.Stfld, AccessTools.Field(typeof(Stats), "CurrentExperience")),
+                    new CodeMatch(OpCodes.Ldarg_0)).IsValid)
                 {
-                    if (codes[i].opcode == OpCodes.Sub &&
-                        codes[i + 1].opcode == OpCodes.Ldc_I4_4 &&
-                        codes[i + 2].opcode == OpCodes.Bgt)
+                    if (matcher.MatchStartForward(
+                        new CodeMatch(OpCodes.Ldarg_0),
+                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Character), "MyStats")),
+                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Stats), "Charmed")),
+                        new CodeMatch(OpCodes.Brfalse)).IsValid)
                     {
-                        var targetInstruction = codes[i + 3];
-
-                        if (targetInstruction.labels.Count == 0)
-                        {
-                            var xpLabel = new Label();
-                            targetInstruction.labels.Add(xpLabel);
-                            codes[i + 2].operand = xpLabel;
-                        }
-                        else
-                        {
-                            codes[i + 2].operand = targetInstruction.labels[0];
-                        }
-
-                        break;
+                        correctLeaveTarget = matcher.Instruction.labels.FirstOrDefault();
                     }
                 }
 
-                return codes.AsEnumerable();
+                matcher.Start();
+
+                if (matcher.MatchEndForward(
+                    new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GameData), "PlayerStats")),
+                    new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Stats), "Level")),
+                    new CodeMatch(OpCodes.Ldarg_0),
+                    new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Character), "MyStats")),
+                    new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Stats), "Level")),
+                    new CodeMatch(OpCodes.Sub),
+                    new CodeMatch(OpCodes.Ldc_I4_4),
+                    new CodeMatch(OpCodes.Bgt)).IsValid)
+                {
+                    var bgtInstruction = matcher.Instruction;
+                    var targetInstruction = matcher.Advance(1).Instruction;
+
+                    var newLabel = new Label();
+                    targetInstruction.labels.Add(newLabel);
+                    bgtInstruction.operand = newLabel;
+                }
+
+                matcher.Start();
+
+                if (matcher.MatchStartForward(
+                    new CodeMatch(OpCodes.Leave),
+                    new CodeMatch(OpCodes.Ldloca_S),
+                    new CodeMatch(OpCodes.Constrained),
+                    new CodeMatch(OpCodes.Callvirt),
+                    new CodeMatch(OpCodes.Endfinally),
+                    new CodeMatch(OpCodes.Ldarg_0),
+                    new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Character), "alternateAttacker"))
+                    ).IsValid)
+                {
+                    matcher.SetOperandAndAdvance(correctLeaveTarget);
+                    matcher.Insert(new CodeInstruction(OpCodes.Nop));
+                }
+
+                return matcher.InstructionEnumeration();
             }
         }
     }

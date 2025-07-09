@@ -10,7 +10,7 @@ namespace Erenshor_LowLevelXP
     public class LowLevelXP : BaseUnityPlugin
     {
         internal const string ModName = "LowLevelXP";
-        internal const string ModVersion = "1.0.1";
+        internal const string ModVersion = "1.0.2";
         internal const string ModDescription = "Low Level XP";
         internal const string Author = "Brad522";
         private const string ModGUID = Author + "." + ModName;
@@ -36,30 +36,6 @@ namespace Erenshor_LowLevelXP
             public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
                 var matcher = new CodeMatcher(instructions);
-
-                Label correctLeaveTarget = new Label();
-                
-                while (matcher.MatchEndForward(
-                    new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(SimPlayer), "MyStats")),
-                    new CodeMatch(OpCodes.Dup),
-                    new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Stats), "CurrentExperience")),
-                    new CodeMatch(OpCodes.Ldarg_0),
-                    new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Character), "xp")),
-                    new CodeMatch(OpCodes.Add),
-                    new CodeMatch(OpCodes.Stfld, AccessTools.Field(typeof(Stats), "CurrentExperience")),
-                    new CodeMatch(OpCodes.Ldarg_0)).IsValid)
-                {
-                    if (matcher.MatchStartForward(
-                        new CodeMatch(OpCodes.Ldarg_0),
-                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Character), "MyStats")),
-                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Stats), "Charmed")),
-                        new CodeMatch(OpCodes.Brfalse)).IsValid)
-                    {
-                        correctLeaveTarget = matcher.Instruction.labels.FirstOrDefault();
-                    }
-                }
-
-                matcher.Start();
 
                 if (matcher.MatchEndForward(
                     new CodeMatch(OpCodes.Ldsfld, AccessTools.Field(typeof(GameData), "PlayerStats")),
@@ -91,7 +67,7 @@ namespace Erenshor_LowLevelXP
                     new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Character), "alternateAttacker"))
                     ).IsValid)
                 {
-                    matcher.SetOperandAndAdvance(correctLeaveTarget);
+                    matcher.Advance(1);
                     matcher.Insert(new CodeInstruction(OpCodes.Nop));
                 }
 
